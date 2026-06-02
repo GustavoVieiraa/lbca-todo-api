@@ -8,6 +8,12 @@
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="Dapper" Version="2.1.79" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+  <!-- Scripts SQL embutidos: aplicados pelo DatabaseInitializer no startup. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\db\*.sql" LinkBase="Sql" />
   </ItemGroup>
 
   <PropertyGroup>
