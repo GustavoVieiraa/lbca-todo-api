@@ -18,15 +18,18 @@ public sealed class TarefasController : ControllerBase
 {
     private readonly ITarefaService _tarefas;
     private readonly IImportacaoService _importacao;
+    private readonly IPlanilhaExemploGenerator _exemploGenerator;
     private readonly ImportacaoSettings _importSettings;
 
     public TarefasController(
         ITarefaService tarefas,
         IImportacaoService importacao,
+        IPlanilhaExemploGenerator exemploGenerator,
         IOptions<ImportacaoSettings> importSettings)
     {
         _tarefas = tarefas;
         _importacao = importacao;
+        _exemploGenerator = exemploGenerator;
         _importSettings = importSettings.Value;
     }
 
@@ -78,6 +81,18 @@ public sealed class TarefasController : ControllerBase
     {
         var removida = await _tarefas.RemoverAsync(id, cancellationToken);
         return removida ? NoContent() : NotFound();
+    }
+
+    /// <summary>Baixa uma planilha de exemplo (.xlsx) no modelo aceito pela importação.</summary>
+    [HttpGet("modelo")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult BaixarModelo()
+    {
+        var conteudo = _exemploGenerator.Gerar();
+        return File(
+            conteudo,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "tarefas-exemplo.xlsx");
     }
 
     /// <summary>

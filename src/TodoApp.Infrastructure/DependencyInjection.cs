@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<IDbConnectionFactory>(_ => new SqlConnectionFactory(connectionString));
         services.AddScoped<ITarefaRepository, TarefaRepository>();
         services.AddSingleton<IPlanilhaTarefaLeitor, ClosedXmlPlanilhaTarefaLeitor>();
+        services.AddSingleton<IPlanilhaExemploGenerator, ClosedXmlPlanilhaExemploGenerator>();
         services.AddSingleton<IDatabaseInitializer>(_ => new DatabaseInitializer(connectionString));
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
