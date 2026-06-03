@@ -75,6 +75,20 @@ dotnet run --project src/TodoApp.Api
 A connection string padrão (`appsettings.json`) aponta para `localhost,1433`. Ajuste se necessário,
 ou use uma variável de ambiente: `ConnectionStrings__TodoDb`.
 
+### Front-end (opcional)
+
+Um front-end mínimo em **React + Vite + TypeScript** está em [`frontend/`](frontend/) — login, lista de
+tarefas com paginação/filtros, CRUD e a tela de importação com o relatório de erros.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Acesse <http://localhost:5173>. O Vite faz proxy de `/api` para a API em `http://localhost:8080`
+(sem CORS), então basta ter a API rodando (via Docker Compose ou local).
+
 ---
 
 ## Autenticação
