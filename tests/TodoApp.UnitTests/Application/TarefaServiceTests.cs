@@ -58,6 +58,19 @@ public class TarefaServiceTests
         await _repositorio.DidNotReceive().AdicionarAsync(Arg.Any<Tarefa>(), Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task Criar_ComDataDeHoje_Permite()
+    {
+        // Hoje é o limite de criação (não é "passado").
+        _repositorio.AdicionarAsync(Arg.Any<Tarefa>(), Arg.Any<CancellationToken>()).Returns(10L);
+        var servico = CriarServico();
+
+        var resposta = await servico.CriarAsync(
+            new CriarTarefaRequest("Para hoje", null, Agora, Prioridade.Media));
+
+        resposta.Id.Should().Be(10);
+    }
+
     // ----------------------------------------------------------- Atualizar
 
     [Fact]

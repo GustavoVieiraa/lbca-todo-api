@@ -139,7 +139,7 @@ Em chamadas diretas, use o header `Authorization: Bearer <token>`.
 Exemplo de listagem paginada: `GET /api/tarefas?pagina=1&tamanhoPagina=20&status=Pendente&prioridade=Alta&busca=relatorio`
 
 **Campos da tarefa:** `Titulo` (obrigatório, ≤ 100), `Descricao` (opcional),
-`DataVencimento` (obrigatória; **futura** na criação), `Status` (`Pendente`, `EmAndamento`, `Concluida`),
+`DataVencimento` (obrigatória; **não anterior a hoje** na criação), `Status` (`Pendente`, `EmAndamento`, `Concluida`),
 `Prioridade` (`Baixa`, `Media`, `Alta`).
 
 ---
@@ -165,7 +165,7 @@ Linhas inválidas **não interrompem** o processo nem geram erro 500. As linhas 
   "importadas": 92,
   "falhas": 8,
   "erros": [
-    { "linha": 5,  "coluna": "DataVencimento", "valor": "01/01/2020", "erro": "A data de vencimento deve ser futura." },
+    { "linha": 5,  "coluna": "DataVencimento", "valor": "01/01/2020", "erro": "A data de vencimento não pode ser anterior a hoje." },
     { "linha": 12, "coluna": "Titulo",         "valor": "",           "erro": "O título é obrigatório." }
   ]
 }
@@ -174,7 +174,10 @@ Linhas inválidas **não interrompem** o processo nem geram erro 500. As linhas 
 O parser é tolerante: aceita datas em vários formatos (`yyyy-MM-dd`, `dd/MM/yyyy`, etc.) e a prioridade
 em texto, ignorando acentos e maiúsculas/minúsculas (`alta`, `Alta`, `ALTA`).
 
-Uma planilha de exemplo (com cenários de sucesso e erro) está em [`exemplos/`](exemplos/).
+Há duas planilhas de exemplo em [`exemplos/`](exemplos/) — e também é possível baixá-las pela
+própria aplicação (`GET /api/tarefas/modelo?tipo=completo|erros`, ou pelos botões na tela de importação):
+- `tarefas-exemplo.xlsx` — 10 tarefas válidas (importação bem-sucedida);
+- `tarefas-exemplo-com-erros.xlsx` — linhas válidas e inválidas (demonstra o relatório de resiliência).
 
 ---
 
@@ -214,7 +217,7 @@ dotnet test tests/TodoApp.IntegrationTests
   é síncrono (leitura em streaming + validação linha-a-linha + `SqlBulkCopy` em lote). Para volumes
   muito grandes, o passo natural de escala seria um processamento **assíncrono** (`202 Accepted` + `jobId`
   + endpoint de status, com uma fila/worker) — o relatório passaria a ser consultado, não retornado.
-- **Validação em duas camadas:** regras de entrada (incl. "data futura", relativa ao tempo) ficam no
+- **Validação em duas camadas:** regras de entrada (incl. data não anterior a hoje, relativa ao tempo) ficam no
   **FluentValidation** da Application; o **domínio** tem *guard clauses* como última linha de defesa, e o
   **banco** tem `CHECK constraints` (defesa em profundidade). Isso mantém a importação resiliente, sem usar
   exceções como fluxo de controle.

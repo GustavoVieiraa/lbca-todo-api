@@ -42,16 +42,18 @@ public class ClosedXmlPlanilhaTarefaLeitorTests
         linhas.Should().ContainSingle();
     }
 
-    [Fact]
-    public void Gerar_ProduzPlanilhaLidaPeloLeitor_ComCabecalhoValido()
+    [Theory]
+    [InlineData(TipoPlanilhaExemplo.ComErros, 7)]
+    [InlineData(TipoPlanilhaExemplo.Completo, 10)]
+    public void Gerar_ProduzPlanilhaLidaPeloLeitor(TipoPlanilhaExemplo tipo, int linhasEsperadas)
     {
-        var bytes = new ClosedXmlPlanilhaExemploGenerator().Gerar();
+        var bytes = new ClosedXmlPlanilhaExemploGenerator().Gerar(tipo);
         using var conteudo = new MemoryStream(bytes);
 
         var linhas = _leitor.Ler(conteudo);
 
-        // 3 válidas + 4 inválidas = 7 linhas de dados; cabeçalho passa na validação.
-        linhas.Should().HaveCount(7);
+        // Cabeçalho passa na validação; conta as linhas de dados geradas.
+        linhas.Should().HaveCount(linhasEsperadas);
     }
 
     [Fact]

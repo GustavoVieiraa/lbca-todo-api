@@ -83,16 +83,24 @@ public sealed class TarefasController : ControllerBase
         return removida ? NoContent() : NotFound();
     }
 
-    /// <summary>Baixa uma planilha de exemplo (.xlsx) no modelo aceito pela importação.</summary>
+    /// <summary>
+    /// Baixa uma planilha de exemplo (.xlsx) no modelo aceito pela importação.
+    /// tipo=completo (10 tarefas válidas) ou tipo=erros (linhas válidas e inválidas).
+    /// </summary>
     [HttpGet("modelo")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult BaixarModelo()
+    public IActionResult BaixarModelo([FromQuery] string? tipo)
     {
-        var conteudo = _exemploGenerator.Gerar();
+        var comErros = string.Equals(tipo, "erros", StringComparison.OrdinalIgnoreCase);
+
+        var conteudo = _exemploGenerator.Gerar(
+            comErros ? TipoPlanilhaExemplo.ComErros : TipoPlanilhaExemplo.Completo);
+        var nomeArquivo = comErros ? "tarefas-exemplo-com-erros.xlsx" : "tarefas-exemplo.xlsx";
+
         return File(
             conteudo,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "tarefas-exemplo.xlsx");
+            nomeArquivo);
     }
 
     /// <summary>

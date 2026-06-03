@@ -18,9 +18,11 @@ public sealed class CriarTarefaRequestValidator : AbstractValidator<CriarTarefaR
             .MaximumLength(Tarefa.TituloTamanhoMaximo)
                 .WithMessage($"O título deve ter no máximo {Tarefa.TituloTamanhoMaximo} caracteres.");
 
-        // Must avalia o "agora" no momento da validação (não na construção do validator).
+        // Não pode ser anterior a hoje (hoje é permitido — é o limite de criação).
+        // Comparação por data (ignora a hora); avaliada no momento da validação.
         RuleFor(x => x.DataVencimento)
-            .Must(data => data > clock.UtcNow).WithMessage("A data de vencimento deve ser futura.");
+            .Must(data => data.Date >= clock.UtcNow.Date)
+            .WithMessage("A data de vencimento não pode ser anterior a hoje.");
 
         RuleFor(x => x.Prioridade)
             .IsInEnum().WithMessage("Prioridade inválida.");
