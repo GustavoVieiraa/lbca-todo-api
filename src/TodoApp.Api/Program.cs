@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using TodoApp.Api.Auth;
 using TodoApp.Api.Configuration;
+using TodoApp.Api.Health;
 using TodoApp.Api.Middleware;
 using TodoApp.Application;
 using TodoApp.Application.Common;
@@ -55,6 +56,17 @@ builder.Services
     });
 builder.Services.AddAuthorization();
 
+// Health check (inclui verificação de conectividade com o banco)
+builder.Services.AddHealthChecks().AddCheck<SqlServerHealthCheck>("sqlserver");
+
+// CORS — origens permitidas configuráveis (ex.: o front em http://localhost:5173)
+var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins(corsOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
+
 // Swagger com suporte a Bearer token
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -94,9 +106,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseSerilogRequestLogging();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
 

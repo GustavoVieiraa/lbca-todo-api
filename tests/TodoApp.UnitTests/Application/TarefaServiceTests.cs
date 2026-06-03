@@ -99,14 +99,30 @@ public class TarefaServiceTests
     }
 
     [Fact]
-    public async Task Atualizar_PermiteDataNoPassado()
+    public async Task Atualizar_MovendoVencimentoParaPassado_Lanca()
     {
+        // Tarefa com data futura; tentar mover para o passado deve falhar.
         _repositorio.ObterPorIdAsync(1, Arg.Any<CancellationToken>()).Returns(TarefaExemplo());
+        var servico = CriarServico();
+
+        var act = () => servico.AtualizarAsync(1,
+            new AtualizarTarefaRequest("Mudar pro passado", null, DataPassada, StatusTarefa.Pendente, Prioridade.Baixa));
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repositorio.DidNotReceive().AtualizarAsync(Arg.Any<Tarefa>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Atualizar_MantendoDataJaVencida_Permite()
+    {
+        // Tarefa que venceu naturalmente; concluí-la sem mudar a data deve ser permitido.
+        var vencida = Tarefa.Criar("Vencida", null, DataPassada, Prioridade.Media, Agora);
+        _repositorio.ObterPorIdAsync(1, Arg.Any<CancellationToken>()).Returns(vencida);
         _repositorio.AtualizarAsync(Arg.Any<Tarefa>(), Arg.Any<CancellationToken>()).Returns(true);
         var servico = CriarServico();
 
         var ok = await servico.AtualizarAsync(1,
-            new AtualizarTarefaRequest("Concluir atrasada", null, DataPassada, StatusTarefa.Concluida, Prioridade.Baixa));
+            new AtualizarTarefaRequest("Vencida", null, DataPassada, StatusTarefa.Concluida, Prioridade.Media));
 
         ok.Should().BeTrue();
     }

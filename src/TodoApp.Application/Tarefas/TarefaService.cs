@@ -1,4 +1,5 @@
 using FluentValidation;
+using FluentValidation.Results;
 using TodoApp.Application.Common;
 using TodoApp.Application.Tarefas.Dtos;
 using TodoApp.Domain.Entities;
@@ -74,6 +75,8 @@ public sealed class TarefaService : ITarefaService
         if (tarefa is null)
             return false;
 
+        GarantirDataNaoMovidaParaPassado(request.DataVencimento, tarefa.DataVencimento);
+
         tarefa.Atualizar(
             request.Titulo, request.Descricao, request.DataVencimento,
             request.Status, request.Prioridade, _clock.UtcNow);
@@ -89,4 +92,24 @@ public sealed class TarefaService : ITarefaService
         Pagina = Math.Max(1, filtro.Pagina),
         TamanhoPagina = Math.Clamp(filtro.TamanhoPagina, 1, TamanhoPaginaMaximo)
     };
+
+    /// <summary>
+    /// Impede MOVER o vencimento para o passado. Mantém a data atual já vencida é permitido,
+    /// para não travar a edição/conclusão de uma tarefa que venceu naturalmente.
+    /// </summary>
+    private void GarantirDataNaoMovidaParaPassado(DateTime nova, DateTime atual)
+    {
+        var hoje = _clock.UtcNow.Date;
+        var mudouData = nova.Date != atual.Date;
+
+        if (mudouData && nova.Date < hoje)
+        {
+            throw new ValidationException(new[]
+            {
+                new ValidationFailure(
+                    nameof(AtualizarTarefaRequest.DataVencimento),
+                    "A data de vencimento não pode ser alterada para uma data no passado.")
+            });
+        }
+    }
 }
