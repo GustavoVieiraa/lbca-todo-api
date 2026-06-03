@@ -4,6 +4,7 @@ using TodoApp.Application.Importacao;
 using TodoApp.Application.Tarefas;
 using TodoApp.Infrastructure.Excel;
 using TodoApp.Infrastructure.Persistence;
+using TodoApp.Infrastructure.Time;
 
 namespace TodoApp.Infrastructure;
 
@@ -20,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<ITarefaRepository, TarefaRepository>();
         services.AddSingleton<IPlanilhaTarefaLeitor, ClosedXmlPlanilhaTarefaLeitor>();
         services.AddSingleton<IDatabaseInitializer>(_ => new DatabaseInitializer(connectionString));
+        services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         return services;
     }
