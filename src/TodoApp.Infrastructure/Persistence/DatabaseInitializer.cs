@@ -11,8 +11,8 @@ namespace TodoApp.Infrastructure.Persistence;
 /// </summary>
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const int MaxTentativas = 15;
-    private static readonly TimeSpan Intervalo = TimeSpan.FromSeconds(2);
+    private const int MaxTentativas = 30;
+    private static readonly TimeSpan Intervalo = TimeSpan.FromSeconds(3);
 
     private readonly string _connectionString;
 
