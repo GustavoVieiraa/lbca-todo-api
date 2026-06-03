@@ -1,14 +1,44 @@
-import { useState } from 'react'
+import { useRef, useState, type DragEvent } from 'react'
 import { api } from './api'
 import { useToast } from './toast'
 import type { ImportacaoResultado } from './types'
 
+function formatarTamanho(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function ImportarView() {
   const toast = useToast()
+  const inputRef = useRef<HTMLInputElement>(null)
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [resultado, setResultado] = useState<ImportacaoResultado | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [arrastando, setArrastando] = useState(false)
   const [baixando, setBaixando] = useState<'completo' | 'erros' | null>(null)
+
+  function selecionar(file: File | null) {
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      toast.erro('Selecione um arquivo .xlsx.')
+      return
+    }
+    setArquivo(file)
+    setResultado(null)
+  }
+
+  function limpar() {
+    setArquivo(null)
+    setResultado(null)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
+  function aoSoltar(e: DragEvent) {
+    e.preventDefault()
+    setArrastando(false)
+    selecionar(e.dataTransfer.files?.[0] ?? null)
+  }
 
   async function baixarExemplo(tipo: 'completo' | 'erros') {
     setBaixando(tipo)
@@ -51,12 +81,10 @@ export function ImportarView() {
       <p className="ajuda">
         Colunas esperadas: <strong>Título</strong>, <strong>Descrição</strong>,
         {' '}<strong>Data de Vencimento</strong> e <strong>Prioridade</strong>.
-        Linhas inválidas não impedem a importação — aparecem no relatório abaixo.
-        <br />
-        Não tem um arquivo? Baixe a planilha de exemplo (já com linhas válidas e inválidas para testar).
+        Linhas inválidas não impedem a importação — aparecem no relatório.
       </p>
 
-      <div className="upload">
+      <div className="exemplos">
         <button onClick={() => baixarExemplo('completo')} disabled={baixando !== null}>
           {baixando === 'completo' ? 'Baixando...' : '⬇ Exemplo completo (10 tarefas)'}
         </button>
@@ -65,12 +93,48 @@ export function ImportarView() {
         </button>
       </div>
 
-      <div className="upload">
-        <input type="file" accept=".xlsx" onChange={e => setArquivo(e.target.files?.[0] ?? null)} />
-        <button className="primario" disabled={!arquivo || enviando} onClick={enviar}>
-          {enviando ? 'Enviando...' : 'Importar'}
-        </button>
+      <div
+        className={`dropzone ${arrastando ? 'arrastando' : ''}`}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setArrastando(true) }}
+        onDragLeave={() => setArrastando(false)}
+        onDrop={aoSoltar}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".xlsx"
+          hidden
+          onChange={e => selecionar(e.target.files?.[0] ?? null)}
+        />
+
+        {arquivo ? (
+          <div className="arquivo">
+            <span className="icone">📄</span>
+            <div className="info">
+              <strong>{arquivo.name}</strong>
+              <span>{formatarTamanho(arquivo.size)}</span>
+            </div>
+            <button
+              className="remover"
+              title="Remover arquivo"
+              onClick={e => { e.stopPropagation(); limpar() }}
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="icone-grande">⬆️</div>
+            <p className="dz-titulo">Arraste a planilha aqui ou clique para selecionar</p>
+            <p className="dz-hint">Apenas arquivos .xlsx</p>
+          </>
+        )}
       </div>
+
+      <button className="primario importar-btn" disabled={!arquivo || enviando} onClick={enviar}>
+        {enviando ? 'Importando...' : 'Importar'}
+      </button>
 
       {resultado && (
         <div className="resultado">

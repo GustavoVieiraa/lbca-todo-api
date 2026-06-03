@@ -277,8 +277,34 @@ button.perigo-solido:hover { background: #c93b41; border-color: #c93b41; }
 
 /* ----- Import ----- */
 .ajuda { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
-.upload { display: flex; gap: 0.6rem; align-items: center; margin: 1rem 0; flex-wrap: wrap; }
-.upload input { width: auto; flex: 1; min-width: 220px; }
+.exemplos { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 0.75rem 0 1.25rem; }
+.exemplos button { font-size: 0.82rem; }
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--surface);
+  transition: border-color 0.15s, background 0.15s;
+}
+.dropzone:hover { border-color: var(--wine); }
+.dropzone.arrastando { border-color: var(--wine); background: var(--wine-soft); }
+.dropzone .icone-grande { font-size: 2.4rem; line-height: 1; opacity: 0.85; }
+.dropzone .dz-titulo { margin: 0.7rem 0 0.25rem; font-weight: 600; }
+.dropzone .dz-hint { margin: 0; color: var(--text-muted); font-size: 0.8rem; }
+.dropzone .arquivo { display: flex; align-items: center; gap: 0.8rem; justify-content: center; }
+.dropzone .arquivo .icone { font-size: 1.9rem; }
+.dropzone .arquivo .info { display: flex; flex-direction: column; text-align: left; }
+.dropzone .arquivo .info strong { font-size: 0.92rem; }
+.dropzone .arquivo .info span { color: var(--text-muted); font-size: 0.78rem; }
+.dropzone .arquivo .remover {
+  background: transparent; border: none; color: var(--text-muted);
+  font-size: 1.1rem; padding: 0.2rem 0.45rem; border-radius: 8px;
+}
+.dropzone .arquivo .remover:hover { color: var(--danger); background: rgba(229, 87, 93, 0.12); }
+.importar-btn { margin-top: 1rem; width: 100%; }
 .resultado { margin-top: 1rem; }
 .resumo { display: flex; gap: 1rem; margin-bottom: 1rem; font-weight: 600; flex-wrap: wrap; }
 .resumo .ok { color: var(--success); }
