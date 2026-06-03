@@ -142,6 +142,22 @@ public class TarefasApiTests : IClassFixture<ApiFactory>
         resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task Importar_ArquivoXlsxCorrompido_Retorna400()
+    {
+        var client = await ClienteAutenticadoAsync();
+
+        using var conteudo = new MultipartFormDataContent();
+        var arquivo = new ByteArrayContent(new byte[] { 1, 2, 3, 4, 5 }); // extensão .xlsx mas conteúdo inválido
+        arquivo.Headers.ContentType =
+            new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        conteudo.Add(arquivo, "arquivo", "corrompido.xlsx");
+
+        var resposta = await client.PostAsync("/api/tarefas/importar", conteudo);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     // ------------------------------------------------------------- Helpers
 
     private async Task<HttpClient> ClienteAutenticadoAsync()

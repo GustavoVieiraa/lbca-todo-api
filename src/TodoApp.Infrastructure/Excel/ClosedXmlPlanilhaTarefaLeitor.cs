@@ -18,6 +18,20 @@ public sealed class ClosedXmlPlanilhaTarefaLeitor : IPlanilhaTarefaLeitor
 
     public IReadOnlyList<LinhaPlanilha> Ler(Stream conteudo)
     {
+        try
+        {
+            return LerInterno(conteudo);
+        }
+        catch (Exception ex) when (ex is not PlanilhaInvalidaException)
+        {
+            // Arquivo corrompido / não é um .xlsx válido: vira 400, não 500.
+            throw new PlanilhaInvalidaException(
+                "Não foi possível ler a planilha. Verifique se o arquivo é um .xlsx válido.", ex);
+        }
+    }
+
+    private static IReadOnlyList<LinhaPlanilha> LerInterno(Stream conteudo)
+    {
         using var workbook = new XLWorkbook(conteudo);
         var planilha = workbook.Worksheets.First();
 

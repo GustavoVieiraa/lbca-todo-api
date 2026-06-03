@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using TodoApp.Application.Importacao;
 
 namespace TodoApp.Api.Middleware;
 
@@ -37,6 +38,15 @@ public sealed class ExcecaoMiddleware
             };
 
             await EscreverAsync(context, problema);
+        }
+        catch (PlanilhaInvalidaException ex)
+        {
+            await EscreverAsync(context, new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Planilha inválida.",
+                Detail = ex.Message
+            });
         }
         catch (ArgumentException ex)
         {

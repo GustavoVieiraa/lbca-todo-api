@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TodoApp.Domain\TodoApp.Domain.csproj" />
     <ProjectReference Include="..\..\src\TodoApp.Application\TodoApp.Application.csproj" />
+    <ProjectReference Include="..\..\src\TodoApp.Infrastructure\TodoApp.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
