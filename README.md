@@ -75,6 +75,15 @@ dotnet run --project src/TodoApp.Api
 A connection string padrão (`appsettings.json`) aponta para `localhost,1433`. Ajuste se necessário,
 ou use uma variável de ambiente: `ConnectionStrings__TodoDb`.
 
+> **Não abre o Swagger no navegador (ERR_CONNECTION_RESET)?** Em algumas máquinas Windows o
+> encaminhamento de porta HTTP do Docker Desktop reseta conexões `host → container` (o TCP conecta,
+> mas o HTTP cai). Solução: rode a **API nativamente** (Opção 2) — o SQL pode continuar no container,
+> pois a conexão ao banco (TDS) não é afetada:
+> ```bash
+> docker compose up -d sqlserver
+> dotnet run --project src/TodoApp.Api --urls http://localhost:8080
+> ```
+
 ### Front-end (opcional)
 
 Um front-end mínimo em **React + Vite + TypeScript** está em [`frontend/`](frontend/) — login, lista de
