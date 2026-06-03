@@ -45,6 +45,8 @@ export function TarefasView() {
   const [salvando, setSalvando] = useState(false)
   const [arrastandoId, setArrastandoId] = useState<number | null>(null)
   const [colunaAlvo, setColunaAlvo] = useState<StatusTarefa | null>(null)
+  const [aExcluir, setAExcluir] = useState<Tarefa | null>(null)
+  const [excluindo, setExcluindo] = useState(false)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -90,20 +92,23 @@ export function TarefasView() {
     }
   }
 
-  async function remover(id: number) {
-    if (!window.confirm('Remover esta tarefa?')) return
+  async function confirmarExclusao() {
+    if (!aExcluir) return
+    setExcluindo(true)
     try {
-      await api.remover(id)
+      await api.remover(aExcluir.id)
       toast.sucesso('Tarefa removida.')
+      setAExcluir(null)
       await carregar()
     } catch (ex) {
       toast.erro((ex as Error).message)
+    } finally {
+      setExcluindo(false)
     }
   }
 
   async function moverStatus(tarefa: Tarefa, novoStatus: StatusTarefa) {
     const anterior = tarefas
-    // Atualização otimista: move o card na hora.
     setTarefas(ts => ts.map(t => (t.id === tarefa.id ? { ...t, status: novoStatus } : t)))
     try {
       await api.atualizar(tarefa.id, {
@@ -114,7 +119,7 @@ export function TarefasView() {
         prioridade: tarefa.prioridade
       })
     } catch (ex) {
-      setTarefas(anterior) // reverte em caso de erro
+      setTarefas(anterior)
       toast.erro((ex as Error).message)
     }
   }
@@ -133,13 +138,14 @@ export function TarefasView() {
   function aoSoltar(e: DragEvent, status: StatusTarefa) {
     e.preventDefault()
     setColunaAlvo(null)
+    setArrastandoId(null)
     const id = Number(e.dataTransfer.getData('text/plain'))
     const tarefa = tarefas.find(t => t.id === id)
     if (tarefa && tarefa.status !== status) void moverStatus(tarefa, status)
   }
 
   return (
-    <section>
+    <section className="tarefas-view">
       <div className="filtros">
         <input
           placeholder="Buscar por título..."
@@ -172,28 +178,33 @@ export function TarefasView() {
                   <span className="contagem">{itens.length}</span>
                 </div>
 
-                {itens.length === 0 && <div className="coluna-vazia">Sem tarefas</div>}
+                <div className="coluna-cards">
+                  {itens.length === 0 && <div className="coluna-vazia">Sem tarefas</div>}
 
-                {itens.map(t => (
-                  <div
-                    key={t.id}
-                    className={`kanban-card ${arrastandoId === t.id ? 'arrastando' : ''}`}
-                    draggable
-                    onDragStart={e => { e.dataTransfer.setData('text/plain', String(t.id)); setArrastandoId(t.id) }}
-                    onDragEnd={() => setArrastandoId(null)}
-                  >
-                    <div className="titulo">{t.titulo}</div>
-                    {t.descricao && <div className="desc">{t.descricao}</div>}
-                    <div className="meta">
-                      <span className="venc">📅 {formatarData(t.dataVencimento)}</span>
-                      <PrioridadeBadge prioridade={t.prioridade} />
+                  {itens.map(t => (
+                    <div
+                      key={t.id}
+                      className={`kanban-card ${arrastandoId === t.id ? 'arrastando' : ''}`}
+                      draggable
+                      onClick={() => editar(t)}
+                      onDragStart={e => { e.dataTransfer.setData('text/plain', String(t.id)); setArrastandoId(t.id) }}
+                      onDragEnd={() => setArrastandoId(null)}
+                    >
+                      <div className="titulo">{t.titulo}</div>
+                      {t.descricao && <div className="desc">{t.descricao}</div>}
+                      <div className="meta">
+                        <span className="venc">📅 {formatarData(t.dataVencimento)}</span>
+                        <PrioridadeBadge prioridade={t.prioridade} />
+                      </div>
+                      <div className="acoes">
+                        <button onClick={e => { e.stopPropagation(); editar(t) }}>Editar</button>
+                        <button className="perigo" onClick={e => { e.stopPropagation(); setAExcluir(t) }}>
+                          Excluir
+                        </button>
+                      </div>
                     </div>
-                    <div className="acoes">
-                      <button onClick={() => editar(t)}>Editar</button>
-                      <button className="perigo" onClick={() => remover(t.id)}>Excluir</button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )
           })}
@@ -254,6 +265,24 @@ export function TarefasView() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {aExcluir && (
+        <div className="modal" onClick={() => setAExcluir(null)}>
+          <div className="card confirmacao" onClick={e => e.stopPropagation()}>
+            <h2>Remover tarefa</h2>
+            <p>
+              Tem certeza que deseja remover <strong>“{aExcluir.titulo}”</strong>?
+              <br />Essa ação não pode ser desfeita.
+            </p>
+            <div className="acoes">
+              <button type="button" onClick={() => setAExcluir(null)}>Cancelar</button>
+              <button type="button" className="perigo-solido" onClick={confirmarExclusao} disabled={excluindo}>
+                {excluindo ? 'Removendo...' : 'Remover'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

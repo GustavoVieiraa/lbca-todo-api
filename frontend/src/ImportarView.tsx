@@ -45,7 +45,7 @@ export function ImportarView() {
   }
 
   return (
-    <section>
+    <section className="importar-view">
       <h2>Importar tarefas (.xlsx)</h2>
       <p className="ajuda">
         Colunas esperadas: <strong>Título</strong>, <strong>Descrição</strong>,
