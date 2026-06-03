@@ -1,24 +1,46 @@
 import { useState } from 'react'
 import { api } from './api'
+import { useToast } from './toast'
 import type { ImportacaoResultado } from './types'
 
 export function ImportarView() {
+  const toast = useToast()
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [resultado, setResultado] = useState<ImportacaoResultado | null>(null)
-  const [erro, setErro] = useState<string | null>(null)
-  const [carregando, setCarregando] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+  const [baixando, setBaixando] = useState(false)
+
+  async function baixarExemplo() {
+    setBaixando(true)
+    try {
+      const blob = await api.baixarModelo()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'tarefas-exemplo.xlsx'
+      link.click()
+      URL.revokeObjectURL(url)
+      toast.sucesso('Planilha de exemplo baixada.')
+    } catch (ex) {
+      toast.erro((ex as Error).message)
+    } finally {
+      setBaixando(false)
+    }
+  }
 
   async function enviar() {
     if (!arquivo) return
-    setErro(null)
     setResultado(null)
-    setCarregando(true)
+    setEnviando(true)
     try {
-      setResultado(await api.importar(arquivo))
+      const r = await api.importar(arquivo)
+      setResultado(r)
+      if (r.falhas === 0) toast.sucesso(`${r.importadas} tarefa(s) importada(s).`)
+      else toast.erro(`${r.importadas} importada(s), ${r.falhas} com falha. Veja o relatório.`)
     } catch (ex) {
-      setErro((ex as Error).message)
+      toast.erro((ex as Error).message)
     } finally {
-      setCarregando(false)
+      setEnviando(false)
     }
   }
 
@@ -27,18 +49,24 @@ export function ImportarView() {
       <h2>Importar tarefas (.xlsx)</h2>
       <p className="ajuda">
         Colunas esperadas: <strong>Título</strong>, <strong>Descrição</strong>,
-        {' '}<strong>Data de Vencimento</strong>, <strong>Prioridade</strong>.
+        {' '}<strong>Data de Vencimento</strong> e <strong>Prioridade</strong>.
         Linhas inválidas não impedem a importação — aparecem no relatório abaixo.
+        <br />
+        Não tem um arquivo? Baixe a planilha de exemplo (já com linhas válidas e inválidas para testar).
       </p>
 
       <div className="upload">
-        <input type="file" accept=".xlsx" onChange={e => setArquivo(e.target.files?.[0] ?? null)} />
-        <button disabled={!arquivo || carregando} onClick={enviar}>
-          {carregando ? 'Enviando...' : 'Importar'}
+        <button onClick={baixarExemplo} disabled={baixando}>
+          {baixando ? 'Baixando...' : '⬇ Baixar planilha de exemplo'}
         </button>
       </div>
 
-      {erro && <p className="erro">{erro}</p>}
+      <div className="upload">
+        <input type="file" accept=".xlsx" onChange={e => setArquivo(e.target.files?.[0] ?? null)} />
+        <button className="primario" disabled={!arquivo || enviando} onClick={enviar}>
+          {enviando ? 'Enviando...' : 'Importar'}
+        </button>
+      </div>
 
       {resultado && (
         <div className="resultado">

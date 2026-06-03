@@ -3,6 +3,7 @@ import { auth } from './api'
 import { Login } from './Login'
 import { TarefasView } from './TarefasView'
 import { ImportarView } from './ImportarView'
+import logo from './assets/logo-lbca.png'
 
 type Aba = 'tarefas' | 'importar'
 
@@ -17,7 +18,9 @@ export function App() {
   return (
     <div className="container">
       <header>
-        <h1>📋 TodoApp</h1>
+        <div className="marca">
+          <img src={logo} alt="LBCA — Lee Brock Camargo Advogados" />
+        </div>
         <nav>
           <button className={aba === 'tarefas' ? 'ativo' : ''} onClick={() => setAba('tarefas')}>
             Tarefas

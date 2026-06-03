@@ -45,3 +45,17 @@ export interface ImportacaoResultado {
   falhas: number
   erros: ErroImportacao[]
 }
+
+// Rótulos amigáveis para a UI (o enum da API não tem acento/espaço).
+export const STATUS_LABEL: Record<StatusTarefa, string> = {
+  Pendente: 'Pendente',
+  EmAndamento: 'Em Andamento',
+  Concluida: 'Concluída'
+}
+
+export const PRIORIDADE_LABEL: Record<Prioridade, string> = {
+  Baixa: 'Baixa',
+  Media: 'Média',
+  Alta: 'Alta'
+}
+

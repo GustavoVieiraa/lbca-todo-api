@@ -72,5 +72,19 @@ export const api = {
     const form = new FormData()
     form.append('arquivo', arquivo)
     return request<ImportacaoResultado>('/api/tarefas/importar', { method: 'POST', body: form })
+  },
+
+  async baixarModelo(): Promise<Blob> {
+    const headers = new Headers()
+    if (auth.token) headers.set('Authorization', `Bearer ${auth.token}`)
+
+    const resposta = await fetch('/api/tarefas/modelo', { headers })
+    if (resposta.status === 401) {
+      auth.clear()
+      throw new Error('Sessão expirada. Faça login novamente.')
+    }
+    if (!resposta.ok) throw new Error('Não foi possível baixar a planilha de exemplo.')
+
+    return resposta.blob()
   }
 }

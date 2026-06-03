@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api } from './api'
-import type { Prioridade, StatusTarefa, Tarefa } from './types'
+import { useToast } from './toast'
+import {
+  PRIORIDADE_LABEL,
+  STATUS_LABEL,
+  type Prioridade,
+  type StatusTarefa,
+  type Tarefa
+} from './types'
 
 const STATUS: StatusTarefa[] = ['Pendente', 'EmAndamento', 'Concluida']
 const PRIORIDADES: Prioridade[] = ['Baixa', 'Media', 'Alta']
@@ -18,18 +25,28 @@ const novaEdicao = (): Edicao => ({
   id: 0, titulo: '', descricao: '', dataVencimento: '', status: 'Pendente', prioridade: 'Media'
 })
 
+function StatusBadge({ status }: { status: StatusTarefa }) {
+  return <span className={`badge ${status.toLowerCase()}`}>{STATUS_LABEL[status]}</span>
+}
+
+function PrioridadeBadge({ prioridade }: { prioridade: Prioridade }) {
+  return <span className={`badge ${prioridade.toLowerCase()}`}>{PRIORIDADE_LABEL[prioridade]}</span>
+}
+
 export function TarefasView() {
+  const toast = useToast()
   const [tarefas, setTarefas] = useState<Tarefa[]>([])
   const [pagina, setPagina] = useState(1)
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [fStatus, setFStatus] = useState('')
   const [fPrioridade, setFPrioridade] = useState('')
   const [busca, setBusca] = useState('')
-  const [erro, setErro] = useState<string | null>(null)
+  const [carregando, setCarregando] = useState(false)
   const [edicao, setEdicao] = useState<Edicao | null>(null)
+  const [salvando, setSalvando] = useState(false)
 
   const carregar = useCallback(async () => {
-    setErro(null)
+    setCarregando(true)
     try {
       const params = new URLSearchParams({ pagina: String(pagina), tamanhoPagina: '10' })
       if (fStatus) params.set('status', fStatus)
@@ -39,16 +56,18 @@ export function TarefasView() {
       setTarefas(r.itens)
       setTotalPaginas(r.totalPaginas || 1)
     } catch (ex) {
-      setErro((ex as Error).message)
+      toast.erro((ex as Error).message)
+    } finally {
+      setCarregando(false)
     }
-  }, [pagina, fStatus, fPrioridade, busca])
+  }, [pagina, fStatus, fPrioridade, busca, toast])
 
   useEffect(() => { void carregar() }, [carregar])
 
   async function salvar(e: FormEvent) {
     e.preventDefault()
     if (!edicao) return
-    setErro(null)
+    setSalvando(true)
     try {
       const base = {
         titulo: edicao.titulo,
@@ -58,24 +77,28 @@ export function TarefasView() {
       }
       if (edicao.id === 0) {
         await api.criar(base)
+        toast.sucesso('Tarefa criada com sucesso.')
       } else {
         await api.atualizar(edicao.id, { ...base, status: edicao.status })
+        toast.sucesso('Tarefa atualizada com sucesso.')
       }
       setEdicao(null)
       await carregar()
     } catch (ex) {
-      setErro((ex as Error).message)
+      toast.erro((ex as Error).message)
+    } finally {
+      setSalvando(false)
     }
   }
 
   async function remover(id: number) {
     if (!window.confirm('Remover esta tarefa?')) return
-    setErro(null)
     try {
       await api.remover(id)
+      toast.sucesso('Tarefa removida.')
       await carregar()
     } catch (ex) {
-      setErro((ex as Error).message)
+      toast.erro((ex as Error).message)
     }
   }
 
@@ -100,36 +123,37 @@ export function TarefasView() {
         />
         <select value={fStatus} onChange={e => { setPagina(1); setFStatus(e.target.value) }}>
           <option value="">Status (todos)</option>
-          {STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+          {STATUS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
         </select>
         <select value={fPrioridade} onChange={e => { setPagina(1); setFPrioridade(e.target.value) }}>
           <option value="">Prioridade (todas)</option>
-          {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
+          {PRIORIDADES.map(p => <option key={p} value={p}>{PRIORIDADE_LABEL[p]}</option>)}
         </select>
-        <button onClick={() => setEdicao(novaEdicao())}>+ Nova tarefa</button>
+        <button className="novo" onClick={() => setEdicao(novaEdicao())}>+ Nova tarefa</button>
       </div>
-
-      {erro && <p className="erro">{erro}</p>}
 
       <table>
         <thead>
           <tr><th>Título</th><th>Vencimento</th><th>Status</th><th>Prioridade</th><th></th></tr>
         </thead>
         <tbody>
-          {tarefas.map(t => (
-            <tr key={t.id}>
-              <td>{t.titulo}</td>
-              <td>{t.dataVencimento.slice(0, 10)}</td>
-              <td>{t.status}</td>
-              <td>{t.prioridade}</td>
-              <td className="acoes">
-                <button onClick={() => editar(t)}>Editar</button>
-                <button className="perigo" onClick={() => remover(t.id)}>Excluir</button>
-              </td>
-            </tr>
-          ))}
-          {tarefas.length === 0 && (
+          {carregando ? (
+            <tr><td colSpan={5} className="carregando">Carregando...</td></tr>
+          ) : tarefas.length === 0 ? (
             <tr><td colSpan={5} className="vazio">Nenhuma tarefa encontrada.</td></tr>
+          ) : (
+            tarefas.map(t => (
+              <tr key={t.id}>
+                <td>{t.titulo}</td>
+                <td>{t.dataVencimento.slice(0, 10)}</td>
+                <td><StatusBadge status={t.status} /></td>
+                <td><PrioridadeBadge prioridade={t.prioridade} /></td>
+                <td className="acoes">
+                  <button onClick={() => editar(t)}>Editar</button>
+                  <button className="perigo" onClick={() => remover(t.id)}>Excluir</button>
+                </td>
+              </tr>
+            ))
           )}
         </tbody>
       </table>
@@ -173,7 +197,7 @@ export function TarefasView() {
                 value={edicao.prioridade}
                 onChange={e => setEdicao({ ...edicao, prioridade: e.target.value as Prioridade })}
               >
-                {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
+                {PRIORIDADES.map(p => <option key={p} value={p}>{PRIORIDADE_LABEL[p]}</option>)}
               </select>
             </label>
             {edicao.id !== 0 && (
@@ -183,13 +207,15 @@ export function TarefasView() {
                   value={edicao.status}
                   onChange={e => setEdicao({ ...edicao, status: e.target.value as StatusTarefa })}
                 >
-                  {STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {STATUS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                 </select>
               </label>
             )}
             <div className="acoes">
               <button type="button" onClick={() => setEdicao(null)}>Cancelar</button>
-              <button type="submit">Salvar</button>
+              <button type="submit" className="primario" disabled={salvando}>
+                {salvando ? 'Salvando...' : 'Salvar'}
+              </button>
             </div>
           </form>
         </div>
