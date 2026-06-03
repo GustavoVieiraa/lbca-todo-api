@@ -28,3 +28,13 @@ services:
       ConnectionStrings__TodoDb: "Server=sqlserver,1433;Database=TodoDb;User Id=sa;Password=Str0ng!Passw0rd;TrustServerCertificate=True;Encrypt=False"
     ports:
       - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: todoapp-frontend
+    depends_on:
+      - api
+    ports:
+      - "5173:80"

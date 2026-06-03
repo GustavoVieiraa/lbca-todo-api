@@ -1,0 +1,137 @@
+{
+  "info": {
+    "name": "TodoApp — LBCA",
+    "description": "Coleção da API de Gerenciamento de Tarefas (LBCA). O request 'Auth - Login' salva o token automaticamente na variável de coleção {{token}}, usada pelos demais requests. Ajuste {{baseUrl}} se necessário.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ]
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  pm.collectionVariables.set('token', pm.response.json().token);",
+              "  pm.test('token salvo', () => pm.expect(pm.collectionVariables.get('token')).to.be.a('string').and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario\": \"admin\",\n  \"senha\": \"admin123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "auth", "login" ]
+        }
+      }
+    },
+    {
+      "name": "Health",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/health", "host": [ "{{baseUrl}}" ], "path": [ "health" ] }
+      }
+    },
+    {
+      "name": "Tarefas - Listar (paginado)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/tarefas?pagina=1&tamanhoPagina=10",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "tarefas" ],
+          "query": [
+            { "key": "pagina", "value": "1" },
+            { "key": "tamanhoPagina", "value": "10" },
+            { "key": "status", "value": "Pendente", "disabled": true },
+            { "key": "prioridade", "value": "Alta", "disabled": true },
+            { "key": "busca", "value": "", "disabled": true }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Tarefas - Obter por id",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/tarefas/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "tarefas", "1" ] }
+      }
+    },
+    {
+      "name": "Tarefas - Criar",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Preparar apresentação\",\n  \"descricao\": \"Slides do trimestre\",\n  \"dataVencimento\": \"2030-12-31\",\n  \"prioridade\": \"Alta\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/tarefas", "host": [ "{{baseUrl}}" ], "path": [ "api", "tarefas" ] }
+      }
+    },
+    {
+      "name": "Tarefas - Atualizar",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Apresentação revisada\",\n  \"descricao\": \"Versão final\",\n  \"dataVencimento\": \"2030-12-31\",\n  \"status\": \"EmAndamento\",\n  \"prioridade\": \"Media\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/tarefas/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "tarefas", "1" ] }
+      }
+    },
+    {
+      "name": "Tarefas - Remover",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/api/tarefas/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "tarefas", "1" ] }
+      }
+    },
+    {
+      "name": "Tarefas - Baixar modelo (.xlsx)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/tarefas/modelo?tipo=completo",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "tarefas", "modelo" ],
+          "query": [ { "key": "tipo", "value": "completo", "description": "completo | erros" } ]
+        }
+      }
+    },
+    {
+      "name": "Tarefas - Importar (.xlsx)",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "arquivo", "type": "file", "src": [], "description": "Selecione um arquivo .xlsx (ex.: exemplos/tarefas-exemplo.xlsx)" }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/api/tarefas/importar", "host": [ "{{baseUrl}}" ], "path": [ "api", "tarefas", "importar" ] }
+      }
+    }
+  ]
+}
