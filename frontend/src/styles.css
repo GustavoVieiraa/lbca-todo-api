@@ -291,7 +291,8 @@ button.perigo-solido:hover { background: #c93b41; border-color: #c93b41; }
 }
 .dropzone:hover { border-color: var(--wine); }
 .dropzone.arrastando { border-color: var(--wine); background: var(--wine-soft); }
-.dropzone .icone-grande { font-size: 2.4rem; line-height: 1; opacity: 0.85; }
+.dropzone .dz-icon { color: var(--wine); opacity: 0.95; }
+.dropzone:hover .dz-icon, .dropzone.arrastando .dz-icon { color: var(--wine-hover); }
 .dropzone .dz-titulo { margin: 0.7rem 0 0.25rem; font-weight: 600; }
 .dropzone .dz-hint { margin: 0; color: var(--text-muted); font-size: 0.8rem; }
 .dropzone .arquivo { display: flex; align-items: center; gap: 0.8rem; justify-content: center; }
