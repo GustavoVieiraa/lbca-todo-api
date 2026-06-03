@@ -74,11 +74,11 @@ export const api = {
     return request<ImportacaoResultado>('/api/tarefas/importar', { method: 'POST', body: form })
   },
 
-  async baixarModelo(): Promise<Blob> {
+  async baixarModelo(tipo: 'completo' | 'erros'): Promise<Blob> {
     const headers = new Headers()
     if (auth.token) headers.set('Authorization', `Bearer ${auth.token}`)
 
-    const resposta = await fetch('/api/tarefas/modelo', { headers })
+    const resposta = await fetch(`/api/tarefas/modelo?tipo=${tipo}`, { headers })
     if (resposta.status === 401) {
       auth.clear()
       throw new Error('Sessão expirada. Faça login novamente.')

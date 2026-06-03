@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { auth } from './api'
+import { useToast } from './toast'
 import { Login } from './Login'
 import { TarefasView } from './TarefasView'
 import { ImportarView } from './ImportarView'
@@ -8,8 +9,15 @@ import logo from './assets/logo-lbca.png'
 type Aba = 'tarefas' | 'importar'
 
 export function App() {
+  const toast = useToast()
   const [autenticado, setAutenticado] = useState(auth.autenticado)
   const [aba, setAba] = useState<Aba>('tarefas')
+
+  function sair() {
+    auth.clear()
+    setAutenticado(false)
+    toast.sucesso('Sessão encerrada.')
+  }
 
   if (!autenticado) {
     return <Login onLogin={() => setAutenticado(true)} />
@@ -28,7 +36,7 @@ export function App() {
           <button className={aba === 'importar' ? 'ativo' : ''} onClick={() => setAba('importar')}>
             Importar planilha
           </button>
-          <button className="sair" onClick={() => { auth.clear(); setAutenticado(false) }}>
+          <button className="sair" onClick={sair}>
             Sair
           </button>
         </nav>

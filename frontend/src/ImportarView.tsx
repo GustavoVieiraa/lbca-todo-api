@@ -8,23 +8,24 @@ export function ImportarView() {
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [resultado, setResultado] = useState<ImportacaoResultado | null>(null)
   const [enviando, setEnviando] = useState(false)
-  const [baixando, setBaixando] = useState(false)
+  const [baixando, setBaixando] = useState<'completo' | 'erros' | null>(null)
 
-  async function baixarExemplo() {
-    setBaixando(true)
+  async function baixarExemplo(tipo: 'completo' | 'erros') {
+    setBaixando(tipo)
     try {
-      const blob = await api.baixarModelo()
+      const blob = await api.baixarModelo(tipo)
+      const nome = tipo === 'erros' ? 'tarefas-exemplo-com-erros.xlsx' : 'tarefas-exemplo.xlsx'
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = 'tarefas-exemplo.xlsx'
+      link.download = nome
       link.click()
       URL.revokeObjectURL(url)
       toast.sucesso('Planilha de exemplo baixada.')
     } catch (ex) {
       toast.erro((ex as Error).message)
     } finally {
-      setBaixando(false)
+      setBaixando(null)
     }
   }
 
@@ -56,8 +57,11 @@ export function ImportarView() {
       </p>
 
       <div className="upload">
-        <button onClick={baixarExemplo} disabled={baixando}>
-          {baixando ? 'Baixando...' : '⬇ Baixar planilha de exemplo'}
+        <button onClick={() => baixarExemplo('completo')} disabled={baixando !== null}>
+          {baixando === 'completo' ? 'Baixando...' : '⬇ Exemplo completo (10 tarefas)'}
+        </button>
+        <button onClick={() => baixarExemplo('erros')} disabled={baixando !== null}>
+          {baixando === 'erros' ? 'Baixando...' : '⬇ Exemplo com erros'}
         </button>
       </div>
 

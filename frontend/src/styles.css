@@ -292,7 +292,7 @@ code { background: var(--surface-2); padding: 0.1rem 0.35rem; border-radius: 5px
 /* ----- Toasts ----- */
 .toaster {
   position: fixed;
-  top: 1rem; right: 1rem;
+  bottom: 1rem; right: 1rem;
   display: flex; flex-direction: column; gap: 0.6rem;
   z-index: 100;
 }
@@ -310,6 +310,6 @@ code { background: var(--surface-2); padding: 0.1rem 0.35rem; border-radius: 5px
 .toast.sucesso { border-left-color: var(--success); }
 .toast.erro { border-left-color: var(--danger); }
 @keyframes toast-in {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }

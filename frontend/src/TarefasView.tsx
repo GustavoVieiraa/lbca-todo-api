@@ -22,8 +22,14 @@ interface Edicao {
   prioridade: Prioridade
 }
 
+function hojeLocal(): string {
+  const agora = new Date()
+  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 10)
+}
+
 const novaEdicao = (): Edicao => ({
-  id: 0, titulo: '', descricao: '', dataVencimento: '', status: 'Pendente', prioridade: 'Media'
+  id: 0, titulo: '', descricao: '', dataVencimento: hojeLocal(), status: 'Pendente', prioridade: 'Media'
 })
 
 function formatarData(iso: string): string {
@@ -234,6 +240,7 @@ export function TarefasView() {
               Data de vencimento
               <input
                 type="date" required
+                min={edicao.id === 0 ? hojeLocal() : undefined}
                 value={edicao.dataVencimento}
                 onChange={e => setEdicao({ ...edicao, dataVencimento: e.target.value })}
               />

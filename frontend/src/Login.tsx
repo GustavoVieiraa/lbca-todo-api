@@ -14,6 +14,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     setCarregando(true)
     try {
       await api.login(usuario, senha)
+      toast.sucesso(`Bem-vindo, ${usuario}!`)
       onLogin()
     } catch (ex) {
       toast.erro((ex as Error).message)
