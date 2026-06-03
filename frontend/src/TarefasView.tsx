@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type DragEvent, type FormEvent } from 'react'
 import { api } from './api'
 import { useToast } from './toast'
 import {
@@ -11,6 +11,7 @@ import {
 
 const STATUS: StatusTarefa[] = ['Pendente', 'EmAndamento', 'Concluida']
 const PRIORIDADES: Prioridade[] = ['Baixa', 'Media', 'Alta']
+const COLUNAS: StatusTarefa[] = ['Pendente', 'EmAndamento', 'Concluida']
 
 interface Edicao {
   id: number
@@ -25,8 +26,9 @@ const novaEdicao = (): Edicao => ({
   id: 0, titulo: '', descricao: '', dataVencimento: '', status: 'Pendente', prioridade: 'Media'
 })
 
-function StatusBadge({ status }: { status: StatusTarefa }) {
-  return <span className={`badge ${status.toLowerCase()}`}>{STATUS_LABEL[status]}</span>
+function formatarData(iso: string): string {
+  const [ano, mes, dia] = iso.slice(0, 10).split('-')
+  return `${dia}/${mes}/${ano}`
 }
 
 function PrioridadeBadge({ prioridade }: { prioridade: Prioridade }) {
@@ -36,31 +38,28 @@ function PrioridadeBadge({ prioridade }: { prioridade: Prioridade }) {
 export function TarefasView() {
   const toast = useToast()
   const [tarefas, setTarefas] = useState<Tarefa[]>([])
-  const [pagina, setPagina] = useState(1)
-  const [totalPaginas, setTotalPaginas] = useState(1)
-  const [fStatus, setFStatus] = useState('')
   const [fPrioridade, setFPrioridade] = useState('')
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [edicao, setEdicao] = useState<Edicao | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [arrastandoId, setArrastandoId] = useState<number | null>(null)
+  const [colunaAlvo, setColunaAlvo] = useState<StatusTarefa | null>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
     try {
-      const params = new URLSearchParams({ pagina: String(pagina), tamanhoPagina: '10' })
-      if (fStatus) params.set('status', fStatus)
+      const params = new URLSearchParams({ pagina: '1', tamanhoPagina: '100' })
       if (fPrioridade) params.set('prioridade', fPrioridade)
       if (busca) params.set('busca', busca)
       const r = await api.listar(params)
       setTarefas(r.itens)
-      setTotalPaginas(r.totalPaginas || 1)
     } catch (ex) {
       toast.erro((ex as Error).message)
     } finally {
       setCarregando(false)
     }
-  }, [pagina, fStatus, fPrioridade, busca, toast])
+  }, [fPrioridade, busca, toast])
 
   useEffect(() => { void carregar() }, [carregar])
 
@@ -102,6 +101,24 @@ export function TarefasView() {
     }
   }
 
+  async function moverStatus(tarefa: Tarefa, novoStatus: StatusTarefa) {
+    const anterior = tarefas
+    // Atualização otimista: move o card na hora.
+    setTarefas(ts => ts.map(t => (t.id === tarefa.id ? { ...t, status: novoStatus } : t)))
+    try {
+      await api.atualizar(tarefa.id, {
+        titulo: tarefa.titulo,
+        descricao: tarefa.descricao,
+        dataVencimento: tarefa.dataVencimento.slice(0, 10),
+        status: novoStatus,
+        prioridade: tarefa.prioridade
+      })
+    } catch (ex) {
+      setTarefas(anterior) // reverte em caso de erro
+      toast.erro((ex as Error).message)
+    }
+  }
+
   function editar(t: Tarefa) {
     setEdicao({
       id: t.id,
@@ -113,56 +130,75 @@ export function TarefasView() {
     })
   }
 
+  function aoSoltar(e: DragEvent, status: StatusTarefa) {
+    e.preventDefault()
+    setColunaAlvo(null)
+    const id = Number(e.dataTransfer.getData('text/plain'))
+    const tarefa = tarefas.find(t => t.id === id)
+    if (tarefa && tarefa.status !== status) void moverStatus(tarefa, status)
+  }
+
   return (
     <section>
       <div className="filtros">
         <input
           placeholder="Buscar por título..."
           value={busca}
-          onChange={e => { setPagina(1); setBusca(e.target.value) }}
+          onChange={e => setBusca(e.target.value)}
         />
-        <select value={fStatus} onChange={e => { setPagina(1); setFStatus(e.target.value) }}>
-          <option value="">Status (todos)</option>
-          {STATUS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-        </select>
-        <select value={fPrioridade} onChange={e => { setPagina(1); setFPrioridade(e.target.value) }}>
+        <select value={fPrioridade} onChange={e => setFPrioridade(e.target.value)}>
           <option value="">Prioridade (todas)</option>
           {PRIORIDADES.map(p => <option key={p} value={p}>{PRIORIDADE_LABEL[p]}</option>)}
         </select>
         <button className="novo" onClick={() => setEdicao(novaEdicao())}>+ Nova tarefa</button>
       </div>
 
-      <table>
-        <thead>
-          <tr><th>Título</th><th>Vencimento</th><th>Status</th><th>Prioridade</th><th></th></tr>
-        </thead>
-        <tbody>
-          {carregando ? (
-            <tr><td colSpan={5} className="carregando">Carregando...</td></tr>
-          ) : tarefas.length === 0 ? (
-            <tr><td colSpan={5} className="vazio">Nenhuma tarefa encontrada.</td></tr>
-          ) : (
-            tarefas.map(t => (
-              <tr key={t.id}>
-                <td>{t.titulo}</td>
-                <td>{t.dataVencimento.slice(0, 10)}</td>
-                <td><StatusBadge status={t.status} /></td>
-                <td><PrioridadeBadge prioridade={t.prioridade} /></td>
-                <td className="acoes">
-                  <button onClick={() => editar(t)}>Editar</button>
-                  <button className="perigo" onClick={() => remover(t.id)}>Excluir</button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      {carregando ? (
+        <p className="carregando">Carregando...</p>
+      ) : (
+        <div className="kanban">
+          {COLUNAS.map(status => {
+            const itens = tarefas.filter(t => t.status === status)
+            return (
+              <div
+                key={status}
+                className={`coluna ${colunaAlvo === status ? 'dragover' : ''}`}
+                onDragOver={e => { e.preventDefault(); setColunaAlvo(status) }}
+                onDragLeave={() => setColunaAlvo(c => (c === status ? null : c))}
+                onDrop={e => aoSoltar(e, status)}
+              >
+                <div className="coluna-titulo">
+                  <span>{STATUS_LABEL[status]}</span>
+                  <span className="contagem">{itens.length}</span>
+                </div>
 
-      <div className="paginacao">
-        <button disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)}>← Anterior</button>
-        <span>Página {pagina} de {totalPaginas}</span>
-        <button disabled={pagina >= totalPaginas} onClick={() => setPagina(p => p + 1)}>Próxima →</button>
-      </div>
+                {itens.length === 0 && <div className="coluna-vazia">Sem tarefas</div>}
+
+                {itens.map(t => (
+                  <div
+                    key={t.id}
+                    className={`kanban-card ${arrastandoId === t.id ? 'arrastando' : ''}`}
+                    draggable
+                    onDragStart={e => { e.dataTransfer.setData('text/plain', String(t.id)); setArrastandoId(t.id) }}
+                    onDragEnd={() => setArrastandoId(null)}
+                  >
+                    <div className="titulo">{t.titulo}</div>
+                    {t.descricao && <div className="desc">{t.descricao}</div>}
+                    <div className="meta">
+                      <span className="venc">📅 {formatarData(t.dataVencimento)}</span>
+                      <PrioridadeBadge prioridade={t.prioridade} />
+                    </div>
+                    <div className="acoes">
+                      <button onClick={() => editar(t)}>Editar</button>
+                      <button className="perigo" onClick={() => remover(t.id)}>Excluir</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {edicao && (
         <div className="modal" onClick={() => setEdicao(null)}>
