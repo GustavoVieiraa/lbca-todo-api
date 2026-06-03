@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using ClosedXML.Excel;
 using TodoApp.Application.Importacao;
 
@@ -15,6 +17,10 @@ public sealed class ClosedXmlPlanilhaTarefaLeitor : IPlanilhaTarefaLeitor
     private const int ColDescricao = 2;
     private const int ColDataVencimento = 3;
     private const int ColPrioridade = 4;
+
+    // Modelo esperado do arquivo (ordem das colunas).
+    private static readonly string[] ColunasEsperadas =
+        { "Título", "Descrição", "Data de Vencimento", "Prioridade" };
 
     public IReadOnlyList<LinhaPlanilha> Ler(Stream conteudo)
     {
@@ -35,10 +41,16 @@ public sealed class ClosedXmlPlanilhaTarefaLeitor : IPlanilhaTarefaLeitor
         using var workbook = new XLWorkbook(conteudo);
         var planilha = workbook.Worksheets.First();
 
+        var linhasUsadas = planilha.RowsUsed().ToList();
+        if (linhasUsadas.Count == 0)
+            throw new PlanilhaInvalidaException("A planilha está vazia ou não possui cabeçalho.");
+
+        ValidarCabecalho(linhasUsadas[0]);
+
         var linhas = new List<LinhaPlanilha>();
 
-        // RowsUsed() ignora linhas totalmente vazias; a 1ª usada é o cabeçalho.
-        foreach (var linha in planilha.RowsUsed().Skip(1))
+        // A 1ª linha usada é o cabeçalho (já validado); as demais são dados.
+        foreach (var linha in linhasUsadas.Skip(1))
         {
             var titulo = LerTexto(linha.Cell(ColTitulo));
             var descricao = LerTexto(linha.Cell(ColDescricao));
@@ -79,5 +91,39 @@ public sealed class ClosedXmlPlanilhaTarefaLeitor : IPlanilhaTarefaLeitor
             return cell.GetDateTime().ToString("yyyy-MM-dd HH:mm:ss");
 
         return LerTexto(cell);
+    }
+
+    /// <summary>
+    /// Garante que o cabeçalho corresponde ao modelo esperado (na ordem). Comparação
+    /// tolerante a acento, caixa e espaços nas pontas. Caso contrário, 400 (modelo inválido).
+    /// </summary>
+    private static void ValidarCabecalho(IXLRow cabecalho)
+    {
+        for (var i = 0; i < ColunasEsperadas.Length; i++)
+        {
+            var atual = Normalizar(cabecalho.Cell(i + 1).GetString());
+            var esperado = Normalizar(ColunasEsperadas[i]);
+
+            if (atual != esperado)
+            {
+                throw new PlanilhaInvalidaException(
+                    $"Cabeçalho inválido na coluna {i + 1} (esperado: '{ColunasEsperadas[i]}'). " +
+                    $"Use o modelo com as colunas: {string.Join(", ", ColunasEsperadas)}.");
+            }
+        }
+    }
+
+    private static string Normalizar(string texto)
+    {
+        var decomposto = texto.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(decomposto.Length);
+
+        foreach (var c in decomposto)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        }
+
+        return sb.ToString().Normalize(NormalizationForm.FormC);
     }
 }
